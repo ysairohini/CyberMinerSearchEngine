@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <!-- meta tags -->
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, 
+    shrink-to-fit=no"
+    />
+    <title>Search Engine</title>
+    <link
+      rel="stylesheet"
+      href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
+      integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm"
+      crossorigin="anonymous"
+    />
+    <link rel="stylesheet" type="text/css" href="../static/gfstyle.css" />
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script>
+      $(document).ready(() => {
+        const pageSizeSelect = $("#pageSizeSelect");
+        const searchInput = $("#search");
+        const resultList = $("#result");
+        const predictWords = $("#datalistOptions");
+        const paginationUI = $("#paginationUI");
+        var searchResults = [];
+        var numberPerPage = Number(pageSizeSelect.val());
+        var currentPage = 1;
+
+        const refresh = () => {
+          displayList();
+          buildPagination();
+        };
+
+        const buildPagination = () => {
+          const left = currentPage - 1;
+          const right = currentPage + 1;
+          if (searchResults.length === 0) return;
+
+          var maxPage = parseInt(searchResults.length / numberPerPage) + 1;
+          var maxPage =
+            searchResults.length % numberPerPage === 0 ? maxPage - 1 : maxPage;
+          paginationUI.children().remove();
+          paginationUI.append(`
+          <li class="page-item ${
+            currentPage === 1 ? "disabled" : ""
+          }"><a class="page-link" id="leftPage" >${left}</a></li>
+          <li class="page-item active" aria-current="page">
+            <a class="page-link" >${currentPage}</a>
+          </li>
+          <li class="page-item ${
+            currentPage === maxPage ? "disabled" : ""
+          }"><a class="page-link" id="rightPage">${right}</a></li>`);
+          $("#leftPage").click(() => {
+            currentPage -= 1;
+            refresh();
+          });
+          $("#rightPage").click(() => {
+            currentPage += 1;
+            refresh();
+          });
+        };
+
+        function getPrediction(data) {
+          $.ajax({
+            url: "/predict",
+            type: "POST",
+            data: data,
+            success: function (response) {
+              const { message = "", data = [] } = JSON.parse(response);
+              predictWords.children().remove();
+              if (data.length == 1) return;
+              for (var i = 0; i < data.length && i < 10; i++) {
+                const { title } = data[i];
+                predictWords.append(`<option value="${title}"></option>`);
+              }
+            },
+            error: function (err) {
+              console.log(err);
+            },
+          });
+        }
+        const displayList = () => {
+          resultList.children().remove();
+          const start = (currentPage - 1) * numberPerPage;
+          for (
+            var i = start;
+            i < start + numberPerPage && i < searchResults.length;
+            i++
+          ) {
+            const { title = "", description = "", url = "" } = searchResults[i];
+            resultList.append(` <a href="${url}" target="_blank" >
+                      <h3>${title}</h3>
+                    </a>
+                    <div class="caption left">
+                      <p>${description}</p>
+                    </div>`);
+          }
+          predictWords.children().remove();
+        };
+
+        function search(data) {
+          $.ajax({
+            url: "/search",
+            type: "POST",
+            data: data,
+            success: function (response) {
+              const { message = "", data = [] } = JSON.parse(response);
+              searchResults = data;
+              currentPage = 1;
+              refresh();
+            },
+            error: function (err) {
+              console.log(err);
+            },
+          });
+        }
+        searchInput.on("input", function () {
+          const val = searchInput.val();
+          if (!val) return;
+          getPrediction({ search: searchInput.val() });
+        });
+        $("#searchForm").submit((e) => {
+          e.preventDefault();
+          const val = searchInput.val();
+          if (!val) return;
+          search({ search: searchInput.val() });
+        });
+        pageSizeSelect.change((e) => {
+          numberPerPage = Number(pageSizeSelect.val());
+          currentPage = 1;
+          refresh();
+        });
+      });
+    </script>
+  </head>
+
+  <body>
+    <header class="container" style="margin-top: 5%">
+      <div class="center">
+        <div class="text-center"><h1 class="text-success">Cyberminer</h1></div>
+        <div class="text-center">
+          <form class="form-inline justify-content-center" id="searchForm">
+            <input
+              class="form-control"
+              list="datalistOptions"
+              id="search"
+              name="search"
+              type="search"
+              placeholder="Search.."
+              aria-label="Search"
+              value="{{keyword}}"
+              style="width: 500px"
+            />
+            <datalist id="datalistOptions"> </datalist>
+
+            <button
+              class="btn my-2 my-sm-0 text-primary"
+              type="submit"
+              id="searchBtn"
+            >
+              Search
+            </button>
+          </form>
+        </div>
+        <hr />
+        <div>
+          Number of results per page
+          <select
+            class="form-select"
+            aria-label="page size selector"
+            id="pageSizeSelect"
+          >
+            <option selected>5</option>
+            <option value="10">10</option>
+            <option value="20">20</option>
+            <option value="30">30</option>
+          </select>
+        </div>
+      </div>
+    </header>
+
+    <div class="container-fluid">
+      <div></div>
+      <div id="result">
+        <h1 style="text-align: center; padding: 100px; color: turquoise">
+          Quick Search on Cyberminer
+        </h1>
+      </div>
+      <nav aria-label="...">
+        <ul
+          class="pagination"
+          id="paginationUI"
+          style="justify-content: center"
+        ></ul>
+      </nav>
+    </div>
+
+    <footer>
+      <div class="footer-2" style="margin-bottom: 5%">
+        <p class="copyright">Copyright @ 2021 Creative Commons StarUps</p>
+        <nav aria-label="breadcrumb">
+          <ol class="breadcrumb justify-content-center">
+            <li class="breadcrumb-item"><a href="#">Home</a></li>
+            <li class="breadcrumb-item"><a href="#">About</a></li>
+            <li class="breadcrumb-item"><a href="#">Contact</a></li>
+            <li class="breadcrumb-item"><a href="#">Browse</a></li>
+          </ol>
+        </nav>
+      </div>
+    </footer>
+  </body>
+</html>

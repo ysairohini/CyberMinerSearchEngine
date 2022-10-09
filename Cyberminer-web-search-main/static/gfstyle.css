@@ -1,0 +1,24 @@
+/*style for bootstrap components*/
+.center{
+	margin: 0 auto;
+	text-align: center;
+}
+
+
+.success{
+	color:green;
+}
+
+.error{
+	color:red;
+}
+
+
+
+.footer-2{
+	background-color: rgb(243, 122, 9);
+	text-align: center;
+	color:black;
+}
+
+
